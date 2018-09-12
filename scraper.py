@@ -24,22 +24,23 @@ def parse_event(event_containers):
     :param event_containers: list of events (with tags)
     :return: formatted event to title, date, location, info
     """
-    events = []
     csv_file = csv.writer(open('index.csv', 'a'))
-    csv_file.writerow(['Title', 'Date', 'Location', 'Information', 'Last update'])
+    csv_file.writerow(['Title', 'Date', 'Location', 'Information', 'Phone', 'Last update'])
 
     for event in event_containers:
         title = event.find('h3', class_="listing-item__title").text.strip()
         date = parse_date(event)
-        try:
-            location = event.find('span', class_="info-content").text.strip()
-        except:
-            print("Error getting location from event: {}".format(title))
-            location = None
+
+        # load the "Read more" link
+        link = event.a['href']
+        soup = BeautifulSoup(requests.get(link).text, 'html.parser')
+
+        info_brand = soup.findAll('span', class_="info-content")
+        location, phone = info_brand[1].text.strip(), info_brand[0].text.strip()
         information = parse_info(event)
 
         # export to csv file
-        csv_file.writerow([title, date, location, information, datetime.now()])
+        csv_file.writerow([title, date, location, information, phone, datetime.now()])
 
 
 def parse_info(event):
