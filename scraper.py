@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
+import csv
+from datetime import datetime
 
 
 def get_events():
@@ -23,6 +25,8 @@ def parse_event(event_containers):
     :return: formatted event to title, date, location, info
     """
     events = []
+    csv_file = csv.writer(open('index.csv', 'a'))
+    csv_file.writerow(['Title', 'Date', 'Location', 'Information', 'Last update'])
 
     for event in event_containers:
         title = event.find('h3', class_="listing-item__title").text.strip()
@@ -30,13 +34,12 @@ def parse_event(event_containers):
         try:
             location = event.find('span', class_="info-content").text.strip()
         except:
-            print("Error getting location fron event: {}".format(title))
+            print("Error getting location from event: {}".format(title))
             location = None
         information = parse_info(event)
 
-        events.append((title, date, location, information))
-
-    print(events)
+        # export to csv file
+        csv_file.writerow([title, date, location, information, datetime.now()])
 
 
 def parse_info(event):
