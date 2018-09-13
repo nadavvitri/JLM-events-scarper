@@ -3,12 +3,14 @@ from bs4 import BeautifulSoup
 import requests
 import csv
 from datetime import datetime
+from event import Event
 
 
 def get_events():
     """
     Parse and return list of events from the url address:
     https://www.itraveljerusalem.com/events/
+    :return: Events list
     """
     url = "https://www.itraveljerusalem.com/events/"
     page = requests.get(url)
@@ -16,33 +18,39 @@ def get_events():
 
     # get the events container
     event_containers = soup.findAll('div', class_="listing-item__info-wrap")
-    parse_event(event_containers)
+    return parse_event(event_containers)
 
 
 def parse_event(event_containers):
     """
     Parse event container to summary, date_time, location, description, url and phone
     :param event_containers: list of events (with tags)
-    :return: formatted event to summary, date_time, location, description, url and phone
+    :return: Events list
     """
     csv_file = csv.writer(open('index.csv', 'a'))
     csv_file.writerow(['Summary', 'DateTime', 'Location', 'Description', 'Url', 'Phone', 'Last update'])
 
-    for event in event_containers:
-        summary = event.find('h3', class_="listing-item__title").text.strip()
-        date = parse_date(event)
+    events = []
+    for e in event_containers:
+        summary = e.find('h3', class_="listing-item__title").text.strip()
+        datetime_format, time_date = parse_date(e)
 
         # load the "Read more" link
-        link = event.a['href']
+        link = e.a['href']
         soup = BeautifulSoup(requests.get(link).text, 'html.parser')
 
         info_brand = soup.findAll('span', class_="info-content")
         location, phone = info_brand[1].text.strip(), info_brand[0].text.strip()
-        description = parse_info(event)
+        description = parse_info(e)
+        updated = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
         # export to csv file
-        csv_file.writerow([summary, date, location, description, link, phone,
-                           datetime.now().strftime("%Y-%m-%dT%H:%M:%S")])
+        csv_file.writerow([summary, datetime_format, location, description, link, phone, updated])
+
+        # to Event object and append
+        events.append(Event(summary, location, description, datetime, link, updated))
+
+    return events
 
 
 def parse_info(event):
@@ -76,8 +84,7 @@ def parse_date(event):
     date_container = event.find('span', class_="page__date-info")
 
     text = [text for text in date_container.stripped_strings]
-    return to_datetime(text[2], text[-1])
-    # return text[2] + ", " + text[-1]
+    return to_datetime(text[2], text[-1]), ", ".join([text[2], text[-1]])
 
 
 if __name__ == '__main__':
