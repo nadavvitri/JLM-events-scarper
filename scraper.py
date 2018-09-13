@@ -1,3 +1,4 @@
+from util import to_datetime
 from bs4 import BeautifulSoup
 import requests
 import csv
@@ -20,15 +21,15 @@ def get_events():
 
 def parse_event(event_containers):
     """
-    Parse event container to title, date, location and info
+    Parse event container to summary, date_time, location, description, url and phone
     :param event_containers: list of events (with tags)
-    :return: formatted event to title, date, location, info
+    :return: formatted event to summary, date_time, location, description, url and phone
     """
     csv_file = csv.writer(open('index.csv', 'a'))
-    csv_file.writerow(['Title', 'Date', 'Location', 'Information', 'Phone', 'Last update'])
+    csv_file.writerow(['Summary', 'DateTime', 'Location', 'Description', 'Url', 'Phone', 'Last update'])
 
     for event in event_containers:
-        title = event.find('h3', class_="listing-item__title").text.strip()
+        summary = event.find('h3', class_="listing-item__title").text.strip()
         date = parse_date(event)
 
         # load the "Read more" link
@@ -37,10 +38,11 @@ def parse_event(event_containers):
 
         info_brand = soup.findAll('span', class_="info-content")
         location, phone = info_brand[1].text.strip(), info_brand[0].text.strip()
-        information = parse_info(event)
+        description = parse_info(event)
 
         # export to csv file
-        csv_file.writerow([title, date, location, information, phone, datetime.now()])
+        csv_file.writerow([summary, date, location, description, link, phone,
+                           datetime.now().strftime("%Y-%m-%dT%H:%M:%S")])
 
 
 def parse_info(event):
@@ -58,10 +60,10 @@ def parse_info(event):
     clean = information_container.find('ul', class_="meta-list meta-list_noborder")
     clean.extract()
 
-    information = ""
+    description = ""
     for tag in information_container:
-        information += tag.text.strip()
-    return information.rsplit('\n', 1)[0]
+        description += tag.text.strip()
+    return description.rsplit('\n', 1)[0]
 
 
 def parse_date(event):
@@ -74,7 +76,8 @@ def parse_date(event):
     date_container = event.find('span', class_="page__date-info")
 
     text = [text for text in date_container.stripped_strings]
-    return text[2] + ", " + text[-1]
+    return to_datetime(text[2], text[-1])
+    # return text[2] + ", " + text[-1]
 
 
 if __name__ == '__main__':
