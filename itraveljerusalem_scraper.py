@@ -13,7 +13,7 @@ def get_events():
     :return: Events list
     """
     url = "https://www.itraveljerusalem.com/events/"
-    page = requests.get(url)
+    page = requests.get(url, timeout=5)
     soup = BeautifulSoup(page.text, 'html.parser')
 
     # get the events container
@@ -32,23 +32,47 @@ def parse_event(event_containers):
 
     events = []
     for e in event_containers:
-        summary = e.find('h3', class_="listing-item__title").text.strip()
-        datetime_format, time_date = parse_date(e)
+        try:
+            summary = e.find('h3', class_="listing-item__title").text.strip()
+        except:
+            summary = None
+
+        try:
+            datetime_format = parse_date(e)
+        except:
+            datetime_format = None
 
         # load the "Read more" link
-        link = e.a['href']
-        soup = BeautifulSoup(requests.get(link).text, 'html.parser')
+        try:
+            link = e.a['href']
+        except:
+            link = None
 
-        info_brand = soup.findAll('span', class_="info-content")
-        location, phone = info_brand[1].text.strip(), info_brand[0].text.strip()
-        description = parse_info(e)
+        page = requests.get(link, timeout=5)
+        soup = BeautifulSoup(page.text, 'html.parser')
+
+        try:
+            info_brand = soup.findAll('span', class_="info-content")
+        except:
+            info_brand = None
+
+        try:
+            location, phone = info_brand[1].text.strip(), info_brand[0].text.strip()
+        except:
+            location = phone = None
+
+        try:
+            description = parse_info(e)
+        except:
+            description = None
+
         updated = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
         # export to csv file
         csv_file.writerow([summary, datetime_format, location, description, link, phone, updated])
 
         # to Event object and append
-        events.append(Event(summary, location, description, datetime, link, updated))
+        events.append(Event(summary, location, description, datetime_format, link, updated))
 
     return events
 
@@ -61,7 +85,8 @@ def parse_info(event):
     """
     # load the "Read more" link
     link = event.a['href']
-    soup = BeautifulSoup(requests.get(link).text, 'html.parser')
+    page = requests.get(link, timeout=5)
+    soup = BeautifulSoup(page.text, 'html.parser')
 
     information_container = soup.find('div', class_="article__info-wrap")
 
@@ -84,7 +109,7 @@ def parse_date(event):
     date_container = event.find('span', class_="page__date-info")
 
     text = [text for text in date_container.stripped_strings]
-    return to_datetime(text[2], text[-1]), ", ".join([text[2], text[-1]])
+    return to_datetime(text[2], text[-1])
 
 
 if __name__ == '__main__':
