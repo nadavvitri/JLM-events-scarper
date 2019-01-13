@@ -18,7 +18,7 @@ class Event:
         self.description = description
         self.datetime = datetime
         self.url = url
-        self.updated = updated
+        self.updated = updated + ".52Z"  # RFC 3339 representation
 
     def to_google_format(self):
         """
@@ -31,7 +31,11 @@ class Event:
             'description': self.description,
             'location': self.location,
             'start': {'dateTime': self.datetime,
-                      'timeZone': 'Asia/Jerusalem'}
+                      'timeZone': 'Asia/Jerusalem'},
+            'end': {
+                'dateTime': self.datetime,
+                'timeZone': 'America/Los_Angeles',
+            }
                 }
 
     def __repr__(self):

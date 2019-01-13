@@ -13,7 +13,7 @@ def get_events():
     :return: Events list
     """
     url = "https://www.itraveljerusalem.com/events/"
-    page = requests.get(url, timeout=5)
+    page = requests.get(url)
     soup = BeautifulSoup(page.text, 'html.parser')
 
     # get the events container
@@ -48,7 +48,7 @@ def parse_event(event_containers):
         except:
             link = None
 
-        page = requests.get(link, timeout=5)
+        page = requests.get(link)
         soup = BeautifulSoup(page.text, 'html.parser')
 
         try:
@@ -72,7 +72,7 @@ def parse_event(event_containers):
         csv_file.writerow([summary, datetime_format, location, description, link, phone, updated])
 
         # to Event object and append
-        events.append(Event(summary, location, description, datetime_format, link, updated))
+        events.append(Event(summary, location, description, datetime_format, link, updated).to_google_format())
 
     return events
 
@@ -85,7 +85,7 @@ def parse_info(event):
     """
     # load the "Read more" link
     link = event.a['href']
-    page = requests.get(link, timeout=5)
+    page = requests.get(link)
     soup = BeautifulSoup(page.text, 'html.parser')
 
     information_container = soup.find('div', class_="article__info-wrap")
